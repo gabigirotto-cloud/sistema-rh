@@ -248,7 +248,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:var(--bg2)}
       <div class="g3">
         <div class="fg"><label>Funcionário</label><select id="pt-f" onchange="loadPT()"></select></div>
         <div class="fg"><label>Mês / Ano</label><input type="month" id="pt-m" onchange="loadPT()"></div>
-        <div class="fg" style="display:flex;align-items:flex-end;gap:8px"><button class="btn pr" onclick="openMP()">+ Registrar dia</button><button class="btn" onclick="gerarMêsCompleto()" title="Preenche todos os dias do mês automaticamente">📅 Gerar mês</button></div>
+        <div class="fg" style="display:flex;align-items:flex-end;gap:8px"><button class="btn pr" onclick="openMP()">+ Registrar dia</button><button class="btn" onclick="gerarMesCompleto()" title="Preenche todos os dias do mês automaticamente">📅 Gerar mês</button></div>
       </div>
       <div id="pt-info" style="display:none">
         <div class="g4">
@@ -894,7 +894,8 @@ tr:last-child td{border-bottom:none}tr:hover td{background:var(--bg2)}
     </div>
   </div>
 </div>
-<script><script>
+<script>
+
 
 
 
@@ -1493,7 +1494,7 @@ function importar(evt){var file=evt.target.files[0];if(!file)return;var r=new Fi
 (function(){var sess=LS.get('sess');if(sess&&sess.id){var u=DB.us.find(function(x){return x.id===sess.id;});if(u){CU=u;startApp();return;}}updLogo();})();
 
 
-function gerarMêsCompleto(){
+function gerarMesCompleto(){
   var fid=document.getElementById('pt-f').value;var mes=document.getElementById('pt-m').value;
   if(!fid||!mes){alert('Selecione funcionário e mes');return;}
   var func=DB.f.find(function(f){return f.id===fid;});if(!func)return;
@@ -1620,7 +1621,7 @@ function rodapeAssinatura(func){
   return h;
 }
 
-function períodoMês(mes){
+function periodoMes(mes){
   var p=mes.split('-');var ano=p[0],mo=parseInt(p[1]);
   var dias=new Date(ano,mo,0).getDate();
   return '01/'+(mo<10?'0':'')+mo+'/'+ano+' a '+dias+'/'+(mo<10?'0':'')+mo+'/'+ano;
@@ -1669,7 +1670,7 @@ function abrirRecPgtoTemp(fid,mes){
   var texto='Declaro, para todos os efeitos, que recebi de <strong>'+(emp.nome||'[EMPRESA]')+'</strong>';
   if(emp.cnpj)texto+=', inscrita no CNPJ <strong>'+emp.cnpj+'</strong>';
   if(emp.end)texto+=', com endereço em <strong>'+emp.end+'</strong>';
-  texto+=', a quantia de <strong>'+fM(total)+'</strong>, referente aos serviços prestados no período de <strong>'+períodoMês(mes)+'</strong>.';
+  texto+=', a quantia de <strong>'+fM(total)+'</strong>, referente aos serviços prestados no período de <strong>'+periodoMes(mes)+'</strong>.';
 
   var cont='<div class="rb">'+cabecalhoEmp()+
     '<div class="rhr"></div>'+
@@ -2701,6 +2702,7 @@ function imprimirRel(contId){
   var w=window.open(URL.createObjectURL(blob),'_blank');
   setTimeout(function(){if(w)w.print();},800);
 }
+
 
 </script>
 <script>if("serviceWorker" in navigator)window.addEventListener("load",function(){navigator.serviceWorker.register("./service-worker.js").catch(function(e){console.log("SW:",e);});});</script>
