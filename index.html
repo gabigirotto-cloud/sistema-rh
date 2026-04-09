@@ -132,6 +132,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:var(--bg2)}
       <div class="ni" id="ni-hex" onclick="nav('hex',this)"><span class="nico">⚡</span>Horas Extras</div>
       <div class="ni" id="ni-adi" onclick="nav('adi',this)"><span class="nico">💰</span>Adiantamentos</div>
       <div class="ni" id="ni-grat" onclick="nav('grat',this)"><span class="nico">🏆</span>Gratificacoes</div>
+      <div class="ni" id="ni-rec" onclick="nav('rec',this)"><span class="nico">🧾</span>Recibos</div>
       <div class="ni" id="ni-rel" onclick="nav('rel',this)"><span class="nico">📋</span>Relatorios</div>
     </div>
     <div style="flex:1"></div>
@@ -180,7 +181,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:var(--bg2)}
       <div class="g3">
         <div class="fg"><label>Funcionario</label><select id="pt-f" onchange="loadPT()"></select></div>
         <div class="fg"><label>Mes / Ano</label><input type="month" id="pt-m" onchange="loadPT()"></div>
-        <div class="fg" style="display:flex;align-items:flex-end"><button class="btn pr" onclick="openMP()">+ Registrar dia</button></div>
+        <div class="fg" style="display:flex;align-items:flex-end;gap:8px"><button class="btn pr" onclick="openMP()">+ Registrar dia</button><button class="btn" onclick="gerarMesCompleto()" title="Preenche todos os dias do mes automaticamente">📅 Gerar mês</button></div>
       </div>
       <div id="pt-info" style="display:none">
         <div class="g4">
@@ -231,6 +232,25 @@ tr:last-child td{border-bottom:none}tr:hover td{background:var(--bg2)}
       </div>
     </div>
     <div class="card" style="padding:0"><table><thead><tr><th>Data</th><th>Funcionario</th><th>Ref.</th><th>Valor</th><th>Motivo</th><th></th></tr></thead><tbody id="tb-gr"></tbody></table></div>
+  </div>
+
+  <!-- RECIBOS -->
+  <div class="page" id="page-rec">
+    <h1>Recibos</h1><p class="sub">Gerar e visualizar recibos de pagamento e adiantamento</p>
+    <div class="card">
+      <div class="g3">
+        <div class="fg"><label>Funcionario</label><select id="rec-f" onchange="listarRecibos()"></select></div>
+        <div class="fg"><label>Tipo de recibo</label>
+          <select id="rec-tipo" onchange="listarRecibos()">
+            <option value="">Todos</option>
+            <option value="pgto">Recibo de pagamento</option>
+            <option value="adi">Recibo de adiantamento</option>
+          </select>
+        </div>
+        <div class="fg"><label>Mes</label><input type="month" id="rec-mes" onchange="listarRecibos()"></div>
+      </div>
+    </div>
+    <div id="rec-lista"></div>
   </div>
 
   <!-- RELATÓRIOS -->
@@ -350,7 +370,6 @@ tr:last-child td{border-bottom:none}tr:hover td{background:var(--bg2)}
       <div class="fg"><label>Data de admissao</label><input id="f-adm" type="date"></div>
       <div class="fg" id="fg-sal"><label>Salario bruto (R$)</label><input id="f-sal" type="number" placeholder="0,00" step="0.01" min="0"></div>
     </div>
-    <div class="fg"><label>Regime</label><select id="f-reg"><option>CLT</option><option>PJ</option><option>Estagio</option><option>Temporario</option></select></div>
     <div class="stitle">Jornada de trabalho</div>
     <div class="g4">
       <div class="fg"><label>Entrada</label><input id="f-je" type="time" value="08:00" oninput="calcCJ()"></div>
@@ -411,6 +430,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:var(--bg2)}
     </div>
     <div class="fg"><label>Observacao</label><input id="p-obs" placeholder="Ex: falta justificada..."></div>
     <div id="p-calc" style="background:var(--bg2);border-radius:var(--rs);padding:10px 13px;margin:10px 0;font-size:13px;border:1px solid var(--bd)">Preencha entrada e saida para calcular.</div>
+    <input type="hidden" id="p-edit-id">
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn" onclick="closeM('m-pt')">Cancelar</button>
       <button class="btn pr" onclick="salvarPT()">Salvar</button>
@@ -429,7 +449,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:var(--bg2)}
       <div class="fg"><label>Inicio *</label><input id="he-ini" type="time" oninput="calcHE()"></div>
       <div class="fg"><label>Saida *</label><input id="he-fim" type="time" oninput="calcHE()"></div>
     </div>
-    <div class="fg"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0"><input type="checkbox" id="he-ti" onchange="togIntHE()"> Houve intervalo?</label></div>
+    <div class="fg" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="he-ti" onchange="togIntHE()" style="width:auto;margin:0"><label style="margin:0;cursor:pointer;font-size:13px;color:var(--tx)">Houve intervalo?</label></div>
     <div id="he-ib" style="display:none">
       <div class="g2">
         <div class="fg"><label>Saida intervalo</label><input id="he-si" type="time" oninput="calcHE()"></div>
@@ -461,6 +481,20 @@ tr:last-child td{border-bottom:none}tr:hover td{background:var(--bg2)}
     </div>
     <div class="fg"><label>Valor (R$) *</label><input id="a-val" type="number" placeholder="0,00" step="0.01" min="0"></div>
     <div class="fg"><label>Motivo</label><input id="a-mot" placeholder="Ex: 1a parcela, vale..."></div>
+    <div class="stitle">Controle interno de pagamento</div>
+    <div class="g2">
+      <div class="fg"><label>Data do pagamento</label><input id="a-dtpgto" type="date"></div>
+      <div class="fg"><label>Forma de pagamento</label>
+        <select id="a-forma">
+          <option value="">Nao informado</option>
+          <option value="pix">Pix</option>
+          <option value="dinheiro">Dinheiro</option>
+          <option value="transferencia">Transferencia</option>
+          <option value="cheque">Cheque</option>
+          <option value="outro">Outro</option>
+        </select>
+      </div>
+    </div>
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;padding-top:12px;border-top:1px solid var(--bd)">
       <button class="btn" onclick="closeM('m-ad')">Cancelar</button>
       <button class="btn pr" onclick="salvarAD()">Salvar</button>
@@ -486,7 +520,31 @@ tr:last-child td{border-bottom:none}tr:hover td{background:var(--bg2)}
   </div>
 </div>
 
-<!-- MODAL RECIBO -->
+<!-- MODAL RECIBO PAGAMENTO -->
+<div class="mb" id="m-rec-pgto">
+  <div class="modal" style="max-width:640px">
+    <div class="mh"><h3 id="mrp-tit">Recibo de Pagamento</h3><button class="xb" onclick="closeM('m-rec-pgto')">✕</button></div>
+    <div id="mrp-cont"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;padding-top:12px;border-top:1px solid var(--bd)">
+      <button class="btn" onclick="closeM('m-rec-pgto')">Fechar</button>
+      <button class="btn pr" onclick="imprimirModalRec('mrp-cont')">🖨 Imprimir</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RECIBO ADIANTAMENTO -->
+<div class="mb" id="m-rec-adi">
+  <div class="modal" style="max-width:640px">
+    <div class="mh"><h3>Recibo de Adiantamento Salarial</h3><button class="xb" onclick="closeM('m-rec-adi')">✕</button></div>
+    <div id="mra-cont"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;padding-top:12px;border-top:1px solid var(--bd)">
+      <button class="btn" onclick="closeM('m-rec-adi')">Fechar</button>
+      <button class="btn pr" onclick="imprimirModalRec('mra-cont')">🖨 Imprimir</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RECIBO (ficha func) -->
 <div class="mb" id="m-rec">
   <div class="modal" style="max-width:640px">
     <div class="mh"><h3>Recibo de Pagamento</h3><button class="xb" onclick="closeM('m-rec')">✕</button></div>
@@ -543,6 +601,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:var(--bg2)}
   </div>
 </div>
 <script>
+
 var LS={get:function(k){try{return JSON.parse(localStorage.getItem('rh4_'+k)||'null');}catch(e){return null;}},set:function(k,v){localStorage.setItem('rh4_'+k,JSON.stringify(v));},id:function(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}};
 var DB=LS.get('db')||{f:[],pt:[],he:[],ad:[],gr:[],us:[],emp:{}};
 ['he','ad','gr','us'].forEach(function(k){if(!DB[k])DB[k]=[];});
@@ -572,7 +631,7 @@ function startApp(){
 }
 function applyPerms(){
   var isA=CU.perf==='admin';
-  ['dash','func','ponto','hex','adi','grat','rel','usr','cfg'].forEach(function(m){
+  ['dash','func','ponto','hex','adi','grat','rel','rec','usr','cfg'].forEach(function(m){
     var el=document.getElementById('ni-'+m);if(!el)return;
     el.style.display=isA?'flex':(CU.perms&&CU.perms.indexOf(m)>=0?'flex':'none');
   });
@@ -610,7 +669,11 @@ async function loadD(){
       if(data&&data.f){DB=data;['he','ad','gr','us'].forEach(function(k){if(!DB[k])DB[k]=[];});if(!DB.emp)DB.emp={};ensureAdmin();saveL();}
     }else{await writeD();}
     lastS=new Date();setSS('ok','Sincronizado');updSyncL();renderAll();updLogo();
-  }catch(e){setSS('er','Erro sync');console.error(e);}
+  }catch(e){
+    console.error('loadD error:',e);
+    if(e&&(e.status===401||e.status===403)){gC.tok=null;LS.set('gc',gC);setSS('er','Sessao expirada - reconecte');renderCfg();}
+    else{setSS('er','Erro sync - verifique conexao');}
+  }
 }
 async function writeD(){
   if(!gC.on||!gapiOk)return;
@@ -622,7 +685,12 @@ async function writeD(){
     var res=await fetch(url,{method:mt,headers:{'Content-Type':'multipart/related; boundary="'+b+'"','Authorization':'Bearer '+gC.tok},body:body});
     var r=await res.json();if(r.id){gC.fid=r.id;LS.set('gc',gC);}
     lastS=new Date();setSS('ok','Sincronizado');updSyncL();
-  }catch(e){setSS('er','Erro ao salvar');console.error(e);}
+  }catch(e){
+    console.error('writeD error:',e);
+    if(e&&(e.status===401||e.status===403||(e.message&&e.message.includes('401')))){
+      gC.tok=null;LS.set('gc',gC);setSS('er','Token expirado - reconecte');
+    }else{setSS('er','Erro ao salvar');}
+  }
 }
 async function syncD(){await loadD();}
 async function syncNow(){if(gC.on)await loadD();}
@@ -665,7 +733,7 @@ function nav(page,el){
   document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});
   document.getElementById('page-'+page).classList.add('active');
   if(el)el.classList.add('active');
-  var map={dash:renderDash,func:renderF,ponto:initPT,hex:initHE,adi:initAD,grat:initGR,rel:initRel,usr:renderU,cfg:renderCfg};
+  var map={dash:renderDash,func:renderF,ponto:initPT,hex:initHE,adi:initAD,grat:initGR,rel:initRel,rec:initRec,usr:renderU,cfg:renderCfg};
   if(map[page])map[page]();
 }
 function openM(id){document.getElementById(id).classList.add('open');}
@@ -677,6 +745,7 @@ function updSel(){
   ['pt-f','he-f','a-f','g-f','rl-f'].forEach(function(sid){var s=document.getElementById(sid);if(!s)return;var v=s.value;s.innerHTML=ativos.map(function(f){return'<option value="'+f.id+'">'+f.nome+'</option>';}).join('');if(v)s.value=v;});
   ['he-ff','ad-ff','gr-ff'].forEach(function(sid){var s=document.getElementById(sid);if(!s)return;var v=s.value;s.innerHTML='<option value="">Todos</option>'+todos.map(function(f){return'<option value="'+f.id+'">'+f.nome+'</option>';}).join('');if(v)s.value=v;});
   var ufs=document.getElementById('u-fv');if(ufs)ufs.innerHTML='<option value="">-- Selecione --</option>'+DB.f.map(function(f){return'<option value="'+f.id+'">'+f.nome+'</option>';}).join('');
+  var recf=document.getElementById('rec-f');if(recf){var rv=recf.value;recf.innerHTML=DB.f.map(function(f){return'<option value="'+f.id+'">' +f.nome+'</option>';}).join('');if(rv)recf.value=rv;}
 }
 function renderAll(){renderDash();var pg=document.querySelector('.page.active');if(!pg)return;var id=pg.id.replace('page-','');var map={func:renderF,ponto:loadPT,hex:renderHE,adi:renderAD,grat:renderGR};if(map[id])map[id]();updSel();}
 function renderDash(){
@@ -732,7 +801,6 @@ function editF(id){
   Object.keys(m).forEach(function(k){var el=document.getElementById(k);if(el)el.value=m[k]||'';});
   document.getElementById('f-ecivil').value=f.ecivil||'Solteiro(a)';
   document.getElementById('f-esc').value=f.esc||'Ensino medio';
-  document.getElementById('f-reg').value=f.reg||'CLT';
   document.getElementById('f-uf').value=f.uf||'';
   document.getElementById('f-tipo').value=f.tipo||'clt';toggleTipo();
   document.getElementById(f.status==='inativo'?'f-inat':'f-ativ').checked=true;
@@ -745,7 +813,7 @@ async function salvarF(){
   var id=document.getElementById('f-id').value||LS.id();
   var rad=document.querySelector('input[name="f-st"]:checked');
   var dias=[];document.querySelectorAll('#dg .db.sel').forEach(function(b){dias.push(parseInt(b.dataset.d));});
-  var f={id:id,status:rad?rad.value:'ativo',tipo:document.getElementById('f-tipo').value,nome:nome,cargo:document.getElementById('f-cargo').value,sal:document.getElementById('f-sal').value,diaria:document.getElementById('f-diaria').value,cpf:document.getElementById('f-cpf').value,rg:document.getElementById('f-rg').value,nasc:document.getElementById('f-nasc').value,ecivil:document.getElementById('f-ecivil').value,esc:document.getElementById('f-esc').value,tel:document.getElementById('f-tel').value,email:document.getElementById('f-email').value,rua:document.getElementById('f-rua').value,bairro:document.getElementById('f-bairro').value,cidade:document.getElementById('f-cidade').value,uf:document.getElementById('f-uf').value,ctps:document.getElementById('f-ctps').value,pis:document.getElementById('f-pis').value,tit:document.getElementById('f-tit').value,depto:document.getElementById('f-depto').value,adm:document.getElementById('f-adm').value,reg:document.getElementById('f-reg').value,obs:document.getElementById('f-obs').value,docs:document.getElementById('f-docs').value.trim(),jE:document.getElementById('f-je').value,jSa:document.getElementById('f-jsa').value,jRa:document.getElementById('f-jra').value,jS:document.getElementById('f-js').value,dias:dias};
+  var f={id:id,status:rad?rad.value:'ativo',tipo:document.getElementById('f-tipo').value,nome:nome,cargo:document.getElementById('f-cargo').value,sal:document.getElementById('f-sal').value,diaria:document.getElementById('f-diaria').value,cpf:document.getElementById('f-cpf').value,rg:document.getElementById('f-rg').value,nasc:document.getElementById('f-nasc').value,ecivil:document.getElementById('f-ecivil').value,esc:document.getElementById('f-esc').value,tel:document.getElementById('f-tel').value,email:document.getElementById('f-email').value,rua:document.getElementById('f-rua').value,bairro:document.getElementById('f-bairro').value,cidade:document.getElementById('f-cidade').value,uf:document.getElementById('f-uf').value,ctps:document.getElementById('f-ctps').value,pis:document.getElementById('f-pis').value,tit:document.getElementById('f-tit').value,depto:document.getElementById('f-depto').value,adm:document.getElementById('f-adm').value,obs:document.getElementById('f-obs').value,docs:document.getElementById('f-docs').value.trim(),jE:document.getElementById('f-je').value,jSa:document.getElementById('f-jsa').value,jRa:document.getElementById('f-jra').value,jS:document.getElementById('f-js').value,dias:dias};
   var idx=DB.f.findIndex(function(x){return x.id===id;});
   if(idx>=0)DB.f[idx]=f;else DB.f.push(f);
   await persist();closeM('m-func');renderF();
@@ -807,12 +875,25 @@ function loadPT(){
   var tt=0,te=0,fa=0;
   var tb=document.getElementById('tb-pt');
   if(!pts.length){tb.innerHTML='<tr><td colspan="9"><div class="empty"><p>Nenhum registro.</p></div></td></tr>';}
-  else tb.innerHTML=pts.map(function(p){var t=calcT(p.ent,p.sal,p.ral,p.sai);var ex=t-jM;tt+=t;if(ex>0)te+=ex;if(ex<-10)fa++;var etag=ex>0?'<span class="badge gr">+'+toHH(ex)+'</span>':ex<-10?'<span class="badge rd">'+toHH(ex)+'</span>':'';return'<tr><td>'+fD(p.data)+'</td><td>'+(p.ent||'-')+'</td><td>'+(p.sal||'-')+'</td><td>'+(p.ral||'-')+'</td><td>'+(p.sai||'-')+'</td><td>'+toHH(t)+'</td><td>'+etag+'</td><td style="font-size:12px;color:var(--tx2)">'+(p.obs||'')+'</td><td><button class="btn sm dr" onclick="delPT(\''+p.id+'\')">✕</button></td></tr>';}).join('');
+  else tb.innerHTML=pts.map(function(p){var t=calcT(p.ent,p.sal,p.ral,p.sai);var ex=t-jM;tt+=t;if(ex>0)te+=ex;if(ex<-10)fa++;var etag=ex>0?'<span class="badge gr">+'+toHH(ex)+'</span>':ex<-10?'<span class="badge rd">'+toHH(ex)+'</span>':'';return'<tr><td>'+fD(p.data)+'</td><td>'+(p.ent||'-')+'</td><td>'+(p.sal||'-')+'</td><td>'+(p.ral||'-')+'</td><td>'+(p.sai||'-')+'</td><td>'+toHH(t)+'</td><td>'+etag+'</td><td style="font-size:12px;color:var(--tx2)">'+(p.obs||'')+'</td><td style="white-space:nowrap"><button class="btn sm" onclick="openMP(\''+p.id+'\')" title="Editar">✏️</button> <button class="btn sm dr" onclick="delPT(\''+p.id+'\')" title="Excluir">✕</button></td></tr>';}).join('');
   document.getElementById('pt-d').textContent=pts.length;document.getElementById('pt-h').textContent=toHH(tt);document.getElementById('pt-e').textContent=toHH(te);document.getElementById('pt-fa').textContent=fa;
 }
-function openMP(){
+function openMP(editId){
   var fid=document.getElementById('pt-f').value;if(!fid){alert('Selecione um funcionario');return;}
   var func=DB.f.find(function(f){return f.id===fid;});
+  document.getElementById('p-edit-id').value=editId||'';
+  if(editId){
+    var reg=DB.pt.find(function(p){return p.id===editId;});
+    if(reg){
+      document.getElementById('p-data').value=reg.data;
+      document.getElementById('p-ent').value=reg.ent||'';
+      document.getElementById('p-sal').value=reg.sal||'';
+      document.getElementById('p-ral').value=reg.ral||'';
+      document.getElementById('p-sai').value=reg.sai||'';
+      document.getElementById('p-obs').value=reg.obs||'';
+      calcPT();openM('m-pt');return;
+    }
+  }
   document.getElementById('p-data').value=new Date().toISOString().slice(0,10);
   document.getElementById('p-ent').value=func&&func.jE?func.jE:'08:00';
   document.getElementById('p-sal').value=func&&func.jSa?func.jSa:'12:00';
@@ -831,9 +912,10 @@ function calcPT(){
 async function salvarPT(){
   var fid=document.getElementById('pt-f').value;var data=document.getElementById('p-data').value;
   if(!fid||!data){alert('Funcionario e data obrigatorios');return;}
-  var p={id:LS.id(),fid:fid,data:data,ent:document.getElementById('p-ent').value,sal:document.getElementById('p-sal').value,ral:document.getElementById('p-ral').value,sai:document.getElementById('p-sai').value,obs:document.getElementById('p-obs').value};
-  var ex=DB.pt.findIndex(function(x){return x.fid===fid&&x.data===data;});
-  if(ex>=0){if(!confirm('Substituir registro existente?'))return;DB.pt.splice(ex,1);}
+  var editId=document.getElementById('p-edit-id').value;
+  var p={id:editId||LS.id(),fid:fid,data:data,ent:document.getElementById('p-ent').value,sal:document.getElementById('p-sal').value,ral:document.getElementById('p-ral').value,sai:document.getElementById('p-sai').value,obs:document.getElementById('p-obs').value};
+  if(editId){DB.pt=DB.pt.filter(function(x){return x.id!==editId;});}
+  else{var ex=DB.pt.findIndex(function(x){return x.fid===fid&&x.data===data;});if(ex>=0){if(!confirm('Substituir registro existente?'))return;DB.pt.splice(ex,1);}}
   DB.pt.push(p);await persist();closeM('m-pt');loadPT();
 }
 async function delPT(id){if(!confirm('Excluir?'))return;DB.pt=DB.pt.filter(function(p){return p.id!==id;});await persist();loadPT();}
@@ -855,7 +937,10 @@ function calcHE(){
   document.getElementById('he-tot').innerHTML='Total: <strong>'+toHH(mins)+'</strong>'+(vph?' = '+fM(mins/60*vph):'');
 }
 function openMHE(){
-  updSel();document.getElementById('he-data').value=new Date().toISOString().slice(0,10);
+  var prevFunc=document.getElementById('he-ff').value;
+  updSel();
+  if(prevFunc)document.getElementById('he-f').value=prevFunc;
+  document.getElementById('he-data').value=new Date().toISOString().slice(0,10);
   document.getElementById('he-ref').value=curM();document.getElementById('he-ini').value='';document.getElementById('he-fim').value='';
   document.getElementById('he-si').value='';document.getElementById('he-ri').value='';
   document.getElementById('he-vph').value='';document.getElementById('he-mot').value='';
@@ -883,11 +968,23 @@ function renderAD(){
   if(!lista.length){tb.innerHTML='<tr><td colspan="6"><div class="empty"><p>Nenhum adiantamento.</p></div></td></tr>';return;}
   tb.innerHTML=lista.map(function(a){var func=DB.f.find(function(x){return x.id===a.fid;});return'<tr><td>'+fD(a.data)+'</td><td>'+(func?func.nome:'?')+'</td><td>'+fMe(a.ref)+'</td><td>'+ocV(fM(a.val))+'</td><td style="color:var(--tx2)">'+(a.mot||'-')+'</td><td><button class="btn sm dr" onclick="delAD(\''+a.id+'\')">✕</button></td></tr>';}).join('');
 }
-function openMA(){updSel();document.getElementById('a-data').value=new Date().toISOString().slice(0,10);document.getElementById('a-ref').value=curM();document.getElementById('a-val').value='';document.getElementById('a-mot').value='';openM('m-ad');}
+function openMA(){
+  var prevFunc=document.getElementById('ad-ff').value;
+  updSel();
+  if(prevFunc)document.getElementById('a-f').value=prevFunc;
+  document.getElementById('a-data').value=new Date().toISOString().slice(0,10);
+  document.getElementById('a-ref').value=curM();
+  document.getElementById('a-val').value='';document.getElementById('a-mot').value='';
+  var dp=document.getElementById('a-dtpgto');if(dp)dp.value='';
+  var fm=document.getElementById('a-forma');if(fm)fm.value='';
+  openM('m-ad');
+}
 async function salvarAD(){
   var fid=document.getElementById('a-f').value;var data=document.getElementById('a-data').value;var val=document.getElementById('a-val').value;var ref=document.getElementById('a-ref').value;
   if(!fid||!data||!val||!ref){alert('Preencha os campos obrigatorios');return;}
-  DB.ad.push({id:LS.id(),fid:fid,data:data,ref:ref,val:parseFloat(val),mot:document.getElementById('a-mot').value});
+  var dtpgto=document.getElementById('a-dtpgto')?document.getElementById('a-dtpgto').value:'';
+  var forma=document.getElementById('a-forma')?document.getElementById('a-forma').value:'';
+  DB.ad.push({id:LS.id(),fid:fid,data:data,ref:ref,val:parseFloat(val),mot:document.getElementById('a-mot').value,dtpgto:dtpgto,forma:forma});
   await persist();closeM('m-ad');renderAD();
 }
 async function delAD(id){if(!confirm('Excluir?'))return;DB.ad=DB.ad.filter(function(a){return a.id!==id;});await persist();renderAD();}
@@ -1043,6 +1140,194 @@ async function delU(id){if(!confirm('Excluir?'))return;DB.us=DB.us.filter(functi
 function exportar(){var blob=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='rh-backup-'+curM()+'.json';a.click();}
 function importar(evt){var file=evt.target.files[0];if(!file)return;var r=new FileReader();r.onload=async function(e){try{var d=JSON.parse(e.target.result);if(!d.f)throw new Error('Formato invalido');if(!confirm('Importar '+d.f.length+' funcionario(s)?'))return;DB=d;['he','ad','gr','us'].forEach(function(k){if(!DB[k])DB[k]=[];});if(!DB.emp)DB.emp={};ensureAdmin();await persist();renderAll();updLogo();alert('Importado!');}catch(err){alert('Erro: '+err.message);}};r.readAsText(file);}
 (function(){var sess=LS.get('sess');if(sess&&sess.id){var u=DB.us.find(function(x){return x.id===sess.id;});if(u){CU=u;startApp();return;}}updLogo();})();
+
+
+function gerarMesCompleto(){
+  var fid=document.getElementById('pt-f').value;var mes=document.getElementById('pt-m').value;
+  if(!fid||!mes){alert('Selecione funcionario e mes');return;}
+  var func=DB.f.find(function(f){return f.id===fid;});if(!func)return;
+  var dias=func.dias||[1,2,3,4,5];
+  var jE=func.jE||'08:00',jSa=func.jSa||'12:00',jRa=func.jRa||'13:00',jS=func.jS||'17:00';
+  var ano=parseInt(mes.split('-')[0]),mo=parseInt(mes.split('-')[1]);
+  var diasNoMes=new Date(ano,mo,0).getDate();
+  var existentes=DB.pt.filter(function(p){return p.fid===fid&&p.data&&p.data.startsWith(mes);}).map(function(p){return p.data;});
+  var novos=[];
+  for(var d=1;d<=diasNoMes;d++){
+    var dt=new Date(ano,mo-1,d);var dow=dt.getDay();
+    if(dias.indexOf(dow)<0)continue;
+    var ds=ano+'-'+(mo<10?'0':'')+mo+'-'+(d<10?'0':'')+d;
+    if(existentes.indexOf(ds)>=0)continue;
+    novos.push({id:LS.id(),fid:fid,data:ds,ent:jE,sal:jSa,ral:jRa,sai:jS,obs:''});
+  }
+  if(!novos.length){alert('Todos os dias ja estao registrados ou nao ha dias uteis neste mes.');return;}
+  if(!confirm('Gerar '+novos.length+' registros automaticamente para '+func.nome+'?'))return;
+  novos.forEach(function(p){DB.pt.push(p);});
+  persist().then(function(){loadPT();});
+}
+
+function initRec(){
+  updSel();
+  var rm=document.getElementById('rec-mes');if(rm)rm.value=curM();
+  listarRecibos();
+}
+
+function listarRecibos(){
+  var fid=document.getElementById('rec-f')?document.getElementById('rec-f').value:'';
+  var tipo=document.getElementById('rec-tipo')?document.getElementById('rec-tipo').value:'';
+  var mes=document.getElementById('rec-mes')?document.getElementById('rec-mes').value:'';
+  var el=document.getElementById('rec-lista');if(!el)return;
+  if(!fid){el.innerHTML='<div class="empty"><div class="ico">🧾</div><p>Selecione um funcionario.</p></div>';return;}
+  var func=DB.f.find(function(f){return f.id===fid;});if(!func)return;
+
+  // Coletar meses com dados
+  var meses=[...new Set(
+    [...DB.ad,...DB.he,...DB.gr,...DB.pt]
+    .filter(function(x){return x.fid===fid;})
+    .map(function(x){return x.ref||(x.data?x.data.slice(0,7):null);})
+    .filter(Boolean)
+  )].sort(function(a,b){return b.localeCompare(a);});
+
+  if(mes)meses=meses.filter(function(m){return m===mes;});
+
+  if(!meses.length){el.innerHTML='<div class="empty"><p>Nenhum dado para gerar recibo.</p></div>';return;}
+
+  var html='';
+  meses.forEach(function(m){
+    var adsM=DB.ad.filter(function(a){return a.fid===fid&&a.ref===m;});
+    var hesM=DB.he.filter(function(h){return h.fid===fid&&h.ref===m;});
+    var grsM=DB.gr.filter(function(g){return g.fid===fid&&g.ref===m;});
+    var tA=adsM.reduce(function(s,a){return s+parseFloat(a.val||0);},0);
+    var tH=hesM.reduce(function(s,h){return s+parseFloat(h.total||0);},0);
+    var tG=grsM.reduce(function(s,g){return s+parseFloat(g.val||0);},0);
+
+    html+='<div class="card" style="margin-bottom:12px">';
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">';
+    html+='<div><strong style="font-size:15px">'+fMe(m)+'</strong><span style="font-size:12px;color:var(--tx2);margin-left:10px">'+func.nome+'</span></div>';
+    html+='<div class="flex" style="gap:8px">';
+    if(adsM.length&&(!tipo||tipo==='adi'))html+='<button class="btn sm" onclick="abrirRecAdi(\''+fid+'\',\''+m+'\')">🧾 Adiantamento ('+fM(tA)+')</button>';
+    if((!tipo||tipo==='pgto'))html+='<button class="btn sm pr" onclick="abrirRecPgto(\''+fid+'\',\''+m+'\')">🧾 Pagamento</button>';
+    html+='</div></div>';
+
+    // Mini-resumo
+    html+='<div style="display:flex;gap:16px;font-size:12px;color:var(--tx2)">';
+    if(adsM.length)html+='<span>Adiant.: '+fM(tA)+'</span>';
+    if(hesM.length)html+='<span>H.Extras: '+fM(tH)+'</span>';
+    if(grsM.length)html+='<span>Gratif.: '+fM(tG)+'</span>';
+    html+='</div></div>';
+  });
+  el.innerHTML=html;
+}
+
+function abrirRecPgto(fid,mes){
+  var func=DB.f.find(function(f){return f.id===fid;});if(!func)return;
+  var emp=DB.emp||{};
+  var ads=DB.ad.filter(function(a){return a.fid===fid&&a.ref===mes;});
+  var hes=DB.he.filter(function(h){return h.fid===fid&&h.ref===mes;});
+  var grs=DB.gr.filter(function(g){return g.fid===fid&&g.ref===mes;});
+  var pts=DB.pt.filter(function(p){return p.fid===fid&&p.data&&p.data.startsWith(mes);});
+  var tA=ads.reduce(function(s,a){return s+parseFloat(a.val||0);},0);
+  var tH=hes.reduce(function(s,h){return s+parseFloat(h.total||0);},0);
+  var tG=grs.reduce(function(s,g){return s+parseFloat(g.val||0);},0);
+
+  var total;
+  if(func.tipo==='temp'){
+    var nd=pts.length;var vd=parseFloat(func.diaria||0);
+    total=nd*vd+tH+tG-tA;
+  }else{
+    total=parseFloat(func.sal||0)+tH+tG-tA;
+  }
+
+  var cidade=emp.cidade||func.cidade||'';
+  var hoje=new Date();var dataFmt=hoje.getDate()+'/'+(hoje.getMonth()+1)+'/'+hoje.getFullYear();
+
+  // Periodo do mes
+  var ano=mes.split('-')[0],mo=parseInt(mes.split('-')[1]);
+  var diasMes=new Date(ano,mo,0).getDate();
+  var dtIni='01/'+( mo<10?'0':'')+mo+'/'+ano;
+  var dtFim=diasMes+'/'+(mo<10?'0':'')+mo+'/'+ano;
+
+  var cabecalho='';
+  if(emp.logo){cabecalho='<div style="text-align:center;margin-bottom:16px"><img src="'+emp.logo+'" style="max-height:60px;max-width:200px"></div>';}
+  else{cabecalho='<div style="text-align:center;margin-bottom:16px"><div style="font-size:16px;font-weight:700">'+(emp.nome||'Empresa')+'</div>'+(emp.cnpj?'<div style="font-size:12px;color:var(--tx2)">CNPJ: '+emp.cnpj+'</div>':'')+( emp.end?'<div style="font-size:12px;color:var(--tx2)">'+emp.end+'</div>':'')+'</div>';}
+
+  var itens='';
+  if(func.tipo==='temp'){itens+='<div class="rl"><span>Dias trabalhados ('+pts.length+' x '+fM(parseFloat(func.diaria||0))+')</span><span>'+fM(pts.length*parseFloat(func.diaria||0))+'</span></div>';}
+  else{itens+='<div class="rl"><span>Salario base</span><span>'+fM(func.sal)+'</span></div>';}
+  hes.forEach(function(h){itens+='<div class="rl"><span>Horas extras '+h.ini+'-'+h.fim+' ('+toHH(h.mins||0)+')</span><span>'+fM(h.total)+'</span></div>';});
+  grs.forEach(function(g){itens+='<div class="rl"><span>Gratificacao: '+g.mot+'</span><span>'+fM(g.val)+'</span></div>';});
+  if(ads.length){itens+='<div class="rhr"></div><div style="font-size:11px;font-weight:700;color:var(--er);margin-bottom:4px">DESCONTOS</div>';ads.forEach(function(a){itens+='<div class="rl"><span>Adiantamento '+fD(a.data)+(a.mot?' - '+a.mot:'')+'</span><span style="color:var(--er)">- '+fM(a.val)+'</span></div>';});}
+
+  var html='<div class="rb">'+cabecalho+
+    '<div class="rhr"></div>'+
+    '<div style="font-size:13px;line-height:1.8;margin-bottom:14px">'+
+    'Declaro, para todos os efeitos, que recebi de <strong>'+(emp.nome||'[EMPRESA]')+'</strong>'+
+    (emp.cnpj?', inscrita no CNPJ <strong>'+emp.cnpj+'</strong>':'')+
+    (emp.end?', com endereco em <strong>'+emp.end+'</strong>':'')+
+    ', a quantia de <strong>'+fM(total)+'</strong>'+
+    ', referente aos servicos prestados no periodo de <strong>'+dtIni+'</strong> a <strong>'+dtFim+'</strong>.'+
+    '</div>'+
+    '<div style="font-size:13px;line-height:1.8;margin-bottom:14px">O presente valor corresponde ao pagamento pelos servicos realizados no periodo acima mencionado.</div>'+
+    (itens?'<div class="rhr"></div>'+itens+'<div class="rhr"></div>':'<div class="rhr"></div>')+
+    '<div class="rt"><span>TOTAL</span><span>'+fM(total)+'</span></div>'+
+    '<div class="rhr"></div>'+
+    '<div style="font-size:13px;margin-bottom:16px">Por ser verdade, firmo o presente.</div>'+
+    '<div style="font-size:13px;margin-bottom:24px"><strong>'+cidade+(cidade?', ':'')+dataFmt+'</strong></div>'+
+    '<div style="display:grid;grid-template-columns:1fr;gap:20px;margin-top:24px">'+
+    '<div style="text-align:center"><div style="border-top:1px solid #999;padding-top:6px;font-size:12px;margin-top:48px">'+func.nome+'</div>'+
+    '<div style="font-size:12px;color:var(--tx2)">CPF: '+(func.cpf||'___.___.___-__')+'</div></div></div>'+
+    '</div>';
+
+  document.getElementById('mrp-cont').innerHTML=html;
+  document.getElementById('mrp-tit').textContent='Recibo de Pagamento - '+fMe(mes);
+  openM('m-rec-pgto');
+}
+
+function abrirRecAdi(fid,mes){
+  var func=DB.f.find(function(f){return f.id===fid;});if(!func)return;
+  var emp=DB.emp||{};
+  var ads=DB.ad.filter(function(a){return a.fid===fid&&a.ref===mes;});
+  if(!ads.length){alert('Nenhum adiantamento neste mes.');return;}
+  var total=ads.reduce(function(s,a){return s+parseFloat(a.val||0);},0);
+  var cidade=emp.cidade||func.cidade||'';
+  var hoje=new Date();var dataFmt=hoje.getDate()+'/'+(hoje.getMonth()+1)+'/'+hoje.getFullYear();
+
+  var cabecalho='';
+  if(emp.logo){cabecalho='<div style="text-align:center;margin-bottom:16px"><img src="'+emp.logo+'" style="max-height:60px;max-width:200px"></div>';}
+  else{cabecalho='<div style="text-align:center;margin-bottom:16px"><div style="font-size:16px;font-weight:700">'+(emp.nome||'Empresa')+'</div>'+(emp.cnpj?'<div style="font-size:12px;color:var(--tx2)">CNPJ: '+emp.cnpj+'</div>':'')+( emp.end?'<div style="font-size:12px;color:var(--tx2)">'+emp.end+'</div>':'')+'</div>';}
+
+  var itens=ads.map(function(a){return'<div class="rl"><span>Adiantamento '+fD(a.data)+(a.mot?' - '+a.mot:'')+'</span><span>'+fM(a.val)+'</span></div>';}).join('');
+
+  var html='<div class="rb">'+cabecalho+
+    '<div class="rhr"></div>'+
+    '<div style="font-size:14px;font-weight:700;text-align:center;margin-bottom:12px">RECIBO DE ADIANTAMENTO SALARIAL</div>'+
+    '<div style="font-size:13px;margin-bottom:10px">Funcionario: <strong>'+func.nome+'</strong></div>'+
+    '<div style="font-size:13px;margin-bottom:14px">Referencia: <strong>'+fMe(mes)+'</strong></div>'+
+    itens+
+    '<div class="rt"><span>TOTAL ADIANTADO</span><span>'+fM(total)+'</span></div>'+
+    '<div class="rhr"></div>'+
+    '<div style="font-size:13px;line-height:1.8;margin-bottom:14px">'+
+    'Declaro, para todos os efeitos, ter recebido, a titulo de adiantamento salarial, a importancia descrita acima e, em consonancia com o disposto no art. 462, caput, da CLT, tenho ciencia de que o respectivo valor sera descontado pelo empregador no pagamento da minha remuneracao mensal referente a folha do mes subsequente.'+
+    '</div>'+
+    '<div style="font-size:13px;margin-bottom:16px">Por ser verdade, firmo o presente.</div>'+
+    '<div style="font-size:13px;margin-bottom:24px"><strong>'+cidade+(cidade?', ':'')+dataFmt+'</strong></div>'+
+    '<div style="display:grid;grid-template-columns:1fr;gap:20px;margin-top:24px">'+
+    '<div style="text-align:center"><div style="border-top:1px solid #999;padding-top:6px;font-size:12px;margin-top:48px">'+func.nome+'</div>'+
+    '<div style="font-size:12px;color:var(--tx2)">CPF: '+(func.cpf||'___.___.___-__')+'</div></div></div>'+
+    '</div>';
+
+  document.getElementById('mra-cont').innerHTML=html;
+  openM('m-rec-adi');
+}
+
+function imprimirModalRec(contId){
+  var c=document.getElementById(contId);if(!c||!c.innerHTML)return;
+  var css='body{font-family:Arial,sans-serif;font-size:12px;padding:20px;color:#000;max-width:600px;margin:0 auto}.rb{border:1px solid #ccc;border-radius:8px;padding:24px}.rl{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:12px}.rt{display:flex;justify-content:space-between;padding:8px 0;font-size:14px;font-weight:700;border-top:2px solid #333;margin-top:4px}.rhr{border:none;border-top:1px solid #ddd;margin:10px 0}@media print{.rb{border:none;padding:0}}';
+  var p=['<!DOCTYPE html><html><head><title>Recibo</title><sty','le>',css,'</','style></','head><body>',c.innerHTML,'</','body></','html>'];
+  var blob=new Blob([p.join('')],{type:'text/html'});var w=window.open(URL.createObjectURL(blob),'_blank');setTimeout(function(){if(w)w.print();},800);
+}
+
+// Manter gerarRec antigo para compatibilidade (chamado da ficha do func)
+function gerarRec(fid,mes){abrirRecPgto(fid,mes);}
 
 </script>
 <script>if("serviceWorker" in navigator)window.addEventListener("load",function(){navigator.serviceWorker.register("./service-worker.js").catch(function(e){console.log("SW:",e);});});</script>
