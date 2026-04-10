@@ -960,9 +960,35 @@ function startApp(){
   document.getElementById('sb-uav').textContent=CU.nome.charAt(0).toUpperCase();
   document.getElementById('sb-un').textContent=CU.nome;
   document.getElementById('sb-ur').textContent=CU.perf==='admin'?'Administrador':'Usuário';
-  applyPerms();updLogo();renderDash();updSel();loadGoogle();
+  applyPerms();updLogo();updSel();loadGoogle();
   if(gC.on)setSS('sy','Reconectando...');
   setTimeout(function(){gerarGratificacoesFixas();gerarEncargosAutomaticos();},2000);
+  // Abrir a primeira página que o usuário tem permissão
+  var isA=CU.perf==='admin';
+  if(isA){
+    // Admin abre no dashboard
+    nav('dash',document.getElementById('ni-dash'));
+  }else{
+    // Usuário comum abre na primeira página permitida
+    var ordem=['dash','func','ponto','hex','adi','grat','rel','rec'];
+    var paginaInicial=null;
+    for(var i=0;i<ordem.length;i++){
+      if(CU.perms&&CU.perms.indexOf(ordem[i])>=0){
+        paginaInicial=ordem[i];break;
+      }
+    }
+    if(paginaInicial){
+      // Esconder o dashboard (que começa como active no HTML)
+      document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+      document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});
+      nav(paginaInicial,document.getElementById('ni-'+paginaInicial));
+    }else{
+      // Sem nenhuma permissão — mostrar mensagem
+      document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+      document.getElementById('page-dash').classList.add('active');
+      document.getElementById('page-dash').innerHTML='<div class="empty" style="margin-top:60px"><div class="ico">🔒</div><p>Você não tem acesso a nenhum módulo.<br>Peça ao administrador para configurar suas permissões.</p></div>';
+    }
+  }
 }
 function applyPerms(){
   var isA=CU.perf==='admin';
