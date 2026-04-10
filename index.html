@@ -467,11 +467,19 @@ tr:last-child td{border-bottom:none}tr:hover td{background:var(--bg2)}
       </div>
     </div>
     <div class="card">
-      <div style="font-size:14px;font-weight:700;margin-bottom:8px">💾 Backup local</div>
-      <div class="flex">
+      <div style="font-size:14px;font-weight:700;margin-bottom:8px">💾 Backup e recuperação</div>
+      <div class="flex" style="flex-wrap:wrap;gap:8px;margin-bottom:12px">
         <button class="btn" onclick="exportar()">⬇ Exportar JSON</button>
         <button class="btn" onclick="document.getElementById('impf').click()">⬆ Importar JSON</button>
         <input type="file" id="impf" accept=".json" style="display:none" onchange="importar(event)">
+      </div>
+      <div style="border-top:1px solid var(--bd);padding-top:12px;margin-top:4px">
+        <div style="font-size:13px;font-weight:700;color:var(--wn);margin-bottom:8px">🔧 Recuperação de emergência</div>
+        <div style="font-size:12px;color:var(--tx2);margin-bottom:10px">Se os dados sumiram após uma sincronização, use estas opções:</div>
+        <div class="flex" style="flex-wrap:wrap;gap:8px">
+          <button class="btn" onclick="verBackup()" style="border-color:var(--wn);color:var(--wn)">🔄 Restaurar backup automático</button>
+          <button class="btn" onclick="forceSyncDrive()" style="border-color:var(--ac);color:var(--ac)">☁️ Enviar dados locais → Drive</button>
+        </div>
       </div>
     </div>
   </div>
@@ -988,6 +996,12 @@ function setSS(st,lbl){document.getElementById('sdot').className='sdot '+st;docu
 function conectar(){var cid=document.getElementById('cfg-cid').value.trim();if(!cid){alert('Informe o Client ID');return;}gC.cid=cid;gC.fn=document.getElementById('cfg-fn').value.trim()||'rh-dados.json';LS.set('gc',gC);if(!tc)initTC(cid);setTimeout(function(){if(tc)tc.requestAccessToken();else alert('Aguarde e tente novamente.');},500);}
 async function writeD(){
   if(!gC.on||!gapiOk)return;
+  // PROTEÇÃO: nunca enviar dados vazios para o Drive
+  if(!dadosValidos(DB)){
+    console.error('RH: Tentativa de enviar dados vazios bloqueada!');
+    setSS('er','Protegido: não enviou dados vazios');
+    return;
+  }
   try{setSS('sy','Salvando...');
     var b='rh4bnd',c=JSON.stringify(DB),m={name:gC.fn,mimeType:'application/json'};
     var body='--'+b+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+JSON.stringify(m)+'\r\n--'+b+'\r\nContent-Type: application/json\r\n\r\n'+c+'\r\n--'+b+'--';
@@ -2978,30 +2992,82 @@ function gerarRelEscHTML(func,mes){
 // PROTEÇÃO DE DADOS — loadD seguro
 // ============================================================
 async function loadDSeguro(){
+  // SEMPRE fazer backup antes de qualquer operação
   backupLocal();
+
   try{
-    var list=await gapi.client.drive.files.list({q:"name='"+gC.fn+"' and trashed=false",fields:'files(id)',spaces:'drive'});
+    var list=await gapi.client.drive.files.list({
+      q:"name='"+gC.fn+"' and trashed=false",
+      fields:'files(id,modifiedTime)',
+      spaces:'drive'
+    });
     var fs=list.result.files;
-    if(fs.length){
-      gC.fid=fs[0].id;LS.set('gc',gC);
-      var res=await gapi.client.request({path:'/drive/v3/files/'+fs[0].id+'?alt=media'});
-      var data=typeof res.result==='string'?JSON.parse(res.result):res.result;
-      if(dadosValidos(data)){
-        // Só sobrescreve se o Drive tiver MAIS dados que o local
-        if(data.f.length>=DB.f.length){
-          DB=data;['he','ad','gr','us','enc','fer','folha'].forEach(function(k){if(!DB[k])DB[k]=[];});
-          if(!DB.emp)DB.emp={};ensureAdmin();saveL();
-        }
-      }else if(dadosValidos(DB)){
-        // Drive vazio mas temos local — fazer upload
+
+    if(!fs.length){
+      // Arquivo não existe no Drive ainda
+      // Só faz upload se temos dados locais válidos
+      if(dadosValidos(DB)){
+        console.log('RH: Drive sem arquivo, enviando dados locais...');
         await writeD();
       }
-    }else{await writeD();}
+      lastS=new Date();setSS('ok','Sincronizado');updSyncL();renderAll();updLogo();
+      return;
+    }
+
+    // Arquivo existe no Drive — baixar e comparar
+    gC.fid=fs[0].id;LS.set('gc',gC);
+    var res=await gapi.client.request({path:'/drive/v3/files/'+fs[0].id+'?alt=media'});
+    var driveData=typeof res.result==='string'?JSON.parse(res.result):res.result;
+    var driveValido=dadosValidos(driveData);
+    var localValido=dadosValidos(DB);
+
+    if(driveValido&&localValido){
+      // AMBOS têm dados — usar o que tem MAIS funcionários
+      // Em caso de empate, Drive vence (é a fonte compartilhada)
+      if(driveData.f.length>=DB.f.length){
+        // Drive tem igual ou mais — carregar do Drive
+        DB=driveData;
+        ['he','ad','gr','us','enc','fer','folha'].forEach(function(k){if(!DB[k])DB[k]=[];});
+        if(!DB.emp)DB.emp={};
+        ensureAdmin();saveL();
+        console.log('RH: Dados carregados do Drive ('+driveData.f.length+' func)');
+      }else{
+        // Local tem MAIS — manter local e sincronizar para o Drive
+        console.log('RH: Local tem mais dados ('+DB.f.length+' vs '+driveData.f.length+'), enviando para Drive...');
+        await writeD();
+      }
+    }else if(driveValido&&!localValido){
+      // Drive tem dados, local está vazio — carregar do Drive
+      DB=driveData;
+      ['he','ad','gr','us','enc','fer','folha'].forEach(function(k){if(!DB[k])DB[k]=[];});
+      if(!DB.emp)DB.emp={};
+      ensureAdmin();saveL();
+      console.log('RH: Local vazio, dados carregados do Drive');
+    }else if(!driveValido&&localValido){
+      // Drive vazio, local tem dados — enviar local para Drive
+      console.log('RH: Drive vazio, enviando dados locais...');
+      await writeD();
+    }else{
+      // Ambos vazios — não fazer nada
+      console.log('RH: Ambos sem dados, nada a sincronizar');
+    }
+
     lastS=new Date();setSS('ok','Sincronizado');updSyncL();renderAll();updLogo();
+
   }catch(e){
-    setSS('er','Erro sync — dados locais preservados');
-    console.error('Sync error:',e);
-    // NÃO apagar dados locais em caso de erro
+    // NUNCA perder dados em caso de erro
+    setSS('er','Erro sync — seus dados locais estão seguros');
+    console.error('RH Sync error:',e);
+    // Restaurar backup se DB ficou vazio por algum motivo
+    if(!dadosValidos(DB)){
+      var bk=LS.get('backup');
+      if(dadosValidos(bk)){
+        DB=bk;saveL();
+        setSS('er','Erro sync — backup automático restaurado');
+        renderAll();updLogo();
+        console.log('RH: Backup restaurado automaticamente após erro');
+      }
+    }
   }
 }
 
@@ -3039,6 +3105,37 @@ function calcDireitoFerias(func){
 }
 
 
+
+// ============================================================
+// RECUPERAÇÃO DE EMERGÊNCIA
+// ============================================================
+function verBackup(){
+  var bk=LS.get('backup');
+  var ts=LS.get('backup_ts');
+  if(!bk||!bk.f||bk.f.length===0){
+    alert('Nenhum backup local encontrado.');return;
+  }
+  var msg='Backup encontrado:\n'+
+    'Funcionários: '+bk.f.length+'\n'+
+    'Pontos: '+(bk.pt?bk.pt.length:0)+'\n'+
+    'Data do backup: '+(ts?new Date(ts).toLocaleString('pt-BR'):'desconhecida')+'\n\n'+
+    'Deseja restaurar este backup?';
+  if(!confirm(msg))return;
+  DB=bk;
+  ['he','ad','gr','us','enc','fer','folha'].forEach(function(k){if(!DB[k])DB[k]=[];});
+  if(!DB.emp)DB.emp={};
+  ensureAdmin();saveL();
+  persist();
+  renderAll();updLogo();
+  alert('Backup restaurado! Os dados voltaram.');
+}
+
+function forceSyncDrive(){
+  if(!gC.on){alert('Google Drive não está conectado.');return;}
+  if(!confirm('Isso vai enviar os dados LOCAIS para o Drive, sobrescrevendo o que está lá. Continuar?'))return;
+  setSS('sy','Enviando para o Drive...');
+  writeD().then(function(){alert('Dados enviados para o Drive com sucesso!');});
+}
 </script>
 <script>if("serviceWorker" in navigator)window.addEventListener("load",function(){navigator.serviceWorker.register("./service-worker.js").catch(function(e){console.log("SW:",e);});});</script>
 </body>
