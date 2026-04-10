@@ -367,7 +367,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:var(--bg2)}
   <div class="page" id="page-folha">
     <div class="topbar"><h1>Folha Mensal</h1><button class="btn pr" onclick="openMFolha()">+ Lançar folha</button></div>
     <p class="sub">Registro da folha de pagamento passada pelo escritório de contabilidade</p>
-    <div class="card" style="padding:0"><table><thead><tr><th>Mês</th><th>Funcionário</th><th>Salário bruto</th><th>INSS desc.</th><th>IRRF desc.</th><th>Outros desc.</th><th>Líquido</th><th>Obs</th><th></th></tr></thead><tbody id="tb-folha"></tbody></table></div>
+    <div class="card" style="padding:0"><table><thead><tr><th>Mês</th><th>Funcionário</th><th>Salário bruto</th><th>INSS desc.</th><th>IRRF desc.</th><th>Outros desc.</th><th>Líquido</th><th>Encargos</th><th>Obs</th><th></th></tr></thead><tbody id="tb-folha"></tbody></table></div>
   </div>
 
   <!-- RELATÓRIOS -->
@@ -526,6 +526,10 @@ tr:last-child td{border-bottom:none}tr:hover td{background:var(--bg2)}
       <div class="fg"><label>Departamento</label><input id="f-depto" placeholder="Ex: Administrativo"></div>
       <div class="fg"><label>Data de admissão</label><input id="f-adm" type="date"></div>
       <div class="fg" id="fg-sal"><label>Salário bruto (R$)</label><input id="f-sal" type="number" placeholder="0,00" step="0.01" min="0"></div>
+      <div class="fg"><label>Alíquota INSS funcionário (%)</label>
+        <input id="f-inss-pct" type="number" placeholder="Ex: 7.5, 9, 12, 14" step="0.01" min="0" max="20">
+        <div style="font-size:11px;color:var(--tx2);margin-top:3px">Tabela 2026: até R$1.621→7,5% | até R$2.902→9% | até R$4.354→12% | até R$8.475→14%</div>
+      </div>
     </div>
     <div class="stitle">Jornada de trabalho</div>
     <div class="g4">
@@ -543,15 +547,6 @@ tr:last-child td{border-bottom:none}tr:hover td{background:var(--bg2)}
         <div class="db" data-d="0">Dom</div>
       </div>
       <div style="font-size:12px;color:var(--tx2);margin-top:8px">Carga diária: <strong id="cj-d">--</strong> &nbsp;|&nbsp; Est. mensal: <strong id="cj-m">--</strong></div>
-    </div>
-    <div class="stitle">Encargos fixos mensais (CLT)</div>
-    <div style="font-size:12px;color:var(--tx2);margin-bottom:8px">Marcados = lançados automaticamente todo mês com base no salário.</div>
-    <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:10px">
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--tx)"><input type="checkbox" id="f-enc-fgts" style="width:auto"> FGTS (8%)</label>
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--tx)"><input type="checkbox" id="f-enc-inss-pat" style="width:auto" onchange="document.getElementById('f-enc-inss-box').style.display=this.checked?'block':'none'"> INSS Patronal</label>
-    </div>
-    <div id="f-enc-inss-box" style="display:none;margin-bottom:10px">
-      <div class="fg"><label>Alíquota INSS Patronal (%)</label><input id="f-enc-inss-pct" type="number" placeholder="Ex: 20" step="0.01" min="0" max="100"></div>
     </div>
     <div class="stitle">Controle de férias</div>
     <div class="fg"><label>Data das últimas férias pagas</label>
@@ -811,6 +806,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:var(--bg2)}
       <div class="fg"><label>Funcionário *</label><select id="fl-f"></select></div>
       <div class="fg"><label>Mês de referência *</label><input id="fl-ref" type="month"></div>
     </div>
+    <div class="stitle">Vencimentos e descontos (folha do escritório)</div>
     <div class="g3">
       <div class="fg"><label>Salário bruto (R$) *</label><input id="fl-bruto" type="number" placeholder="0,00" step="0.01" min="0" oninput="calcFolhaLiq()"></div>
       <div class="fg"><label>INSS descontado (R$)</label><input id="fl-inss" type="number" placeholder="0,00" step="0.01" min="0" oninput="calcFolhaLiq()"></div>
@@ -821,6 +817,20 @@ tr:last-child td{border-bottom:none}tr:hover td{background:var(--bg2)}
       <div class="fg" style="display:flex;flex-direction:column;justify-content:flex-end">
         <div style="background:var(--bg2);border-radius:var(--rs);padding:8px 12px;font-size:13px;border:1px solid var(--bd)">Líquido: <strong id="fl-liq">R$ 0,00</strong></div>
       </div>
+    </div>
+    <div class="stitle">Encargos patronais (custo empresa)</div>
+    <div class="g3">
+      <div class="fg"><label>FGTS (R$)</label><input id="fl-fgts" type="number" placeholder="0,00" step="0.01" min="0" oninput="calcFolhaLiq()"></div>
+      <div class="fg"><label>INSS Patronal (R$)</label><input id="fl-inss-pat" type="number" placeholder="0,00" step="0.01" min="0" oninput="calcFolhaLiq()"></div>
+      <div class="fg"><label>Outros encargos (R$)</label><input id="fl-enc-outros" type="number" placeholder="0,00" step="0.01" min="0" oninput="calcFolhaLiq()"></div>
+    </div>
+    <div id="fl-auto-hint" style="background:var(--acl);border-radius:var(--rs);padding:8px 12px;font-size:12px;color:var(--ac);margin-bottom:10px;display:none"></div>
+    <div class="fg">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;font-size:13px;color:var(--tx)">
+        <input type="checkbox" id="fl-fixo" style="width:auto" onchange="toggleFolhaFixo()">
+        Lançar automaticamente nos próximos meses (estes valores serão pré-preenchidos)
+      </label>
+      <div style="font-size:11px;color:var(--tx2);margin-top:3px;margin-left:24px">Se necessário, você pode editar antes de salvar.</div>
     </div>
     <div class="fg"><label>Observação</label><input id="fl-obs" placeholder="Opcional"></div>
     <input type="hidden" id="fl-id">
@@ -912,6 +922,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:var(--bg2)}
   </div>
 </div>
 <script>
+
 
 
 
@@ -1020,7 +1031,7 @@ async function salvarEmp(){
   DB.emp={nome:document.getElementById('cfg-ne').value.trim(),cnpj:document.getElementById('cfg-cnpj').value.trim(),end:document.getElementById('cfg-end').value.trim(),tel:document.getElementById('cfg-tel').value.trim(),logo:document.getElementById('cfg-logo').value.trim()};
   await persist();updLogo();alert('Dados salvos!');
 }
-function fM(v){return 'R$ '+parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2});}
+function fM(v){return 'R$ '+parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function fD(d){if(!d)return'-';var p=d.split('-');return p[2]+'/'+p[1]+'/'+p[0];}
 function fMe(m){if(!m)return'-';var p=m.split('-');return['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(p[1])-1]+'/'+p[0];}
 function ini(n){return(n||'?').split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase();}
@@ -1033,7 +1044,23 @@ function nav(page,el){
   document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});
   document.getElementById('page-'+page).classList.add('active');
   if(el)el.classList.add('active');
-  var map={dash:renderDash,func:renderF,ponto:initPT,hex:initHE,adi:initAD,grat:initGR,rel:initRel,rec:initRec,enc:initEnc,ferias:initFerias,folha:initFolha,usr:renderU,cfg:renderCfg};
+  function swRelTab(idx,el){
+  document.querySelectorAll('#rel-tabs .tab').forEach(function(t){t.classList.remove('active');});
+  document.querySelectorAll('#page-rel .tab-content').forEach(function(t){t.classList.remove('active');});
+  if(el)el.classList.add('active');
+  var tabs=['rel-tab0','rel-tab1','rel-tab2'];
+  var target=document.getElementById(tabs[idx]);if(target)target.classList.add('active');
+}
+function initRel(){
+  updSel();
+  var rm=document.getElementById('rl-m');if(rm&&!rm.value)rm.value=curM();
+  var rmi=document.getElementById('rl-mi');if(rmi&&!rmi.value)rmi.value=curM();
+  var rmf=document.getElementById('rl-mf');if(rmf&&!rmf.value)rmf.value=curM();
+  // Garantir aba 0 ativa
+  document.querySelectorAll('#rel-tabs .tab').forEach(function(t,i){t.classList.toggle('active',i===0);});
+  document.querySelectorAll('#page-rel .tab-content').forEach(function(t,i){t.classList.toggle('active',i===0);});
+}
+var map={dash:renderDash,func:renderF,ponto:initPT,hex:initHE,adi:initAD,grat:initGR,rel:initRel,rec:initRec,enc:initEnc,ferias:initFerias,folha:initFolha,usr:renderU,cfg:renderCfg};
   if(map[page])map[page]();
 }
 function openM(id){document.getElementById(id).classList.add('open');}
@@ -1071,7 +1098,9 @@ document.getElementById('dg').addEventListener('click',function(e){var b=e.targe
 function toggleTipo(){var v=document.getElementById('f-tipo').value;document.getElementById('fg-diária').style.display=v==='temp'?'block':'none';document.getElementById('fg-sal').style.display=v==='temp'?'none':'block';}
 function renderF(){
   updSel();
-  var filtro=document.getElementById('filt-st')?document.getElementById('filt-st').value:'';
+  var filtEl=document.getElementById('filt-st');
+  if(filtEl&&filtEl.value==='')filtEl.value='ativo';
+  var filtro=filtEl?filtEl.value:'';
   var lista=DB.f.slice();
   if(filtro==='ativo')lista=lista.filter(function(f){return f.status!=='inativo';});
   if(filtro==='inativo')lista=lista.filter(function(f){return f.status==='inativo';});
@@ -1096,10 +1125,10 @@ function openMF(){
   document.getElementById('f-je').value='08:00';document.getElementById('f-jsa').value='12:00';
   document.getElementById('f-jra').value='13:00';document.getElementById('f-js').value='17:00';
   document.getElementById('f-id').value='';document.getElementById('f-ativ').checked=true;
-  var fe2=document.getElementById('f-enc-fgts');if(fe2)fe2.checked=false;
-  var fi2=document.getElementById('f-enc-inss-pat');if(fi2)fi2.checked=false;
-  var fb2=document.getElementById('f-enc-inss-box');if(fb2)fb2.style.display='none';
+  var fip4=document.getElementById('f-inss-pct');if(fip4)fip4.value='';
+  var fuf4=document.getElementById('f-ult-ferias');if(fuf4)fuf4.value='';
   var fuf2=document.getElementById('f-ult-ferias');if(fuf2)fuf2.value='';
+  var fip2=document.getElementById('f-inss-pct');if(fip2)fip2.value='';
   document.getElementById('f-tipo').value='clt';document.getElementById('f-uf').value='';toggleTipo();
   document.querySelectorAll('#dg .db').forEach(function(b){b.classList.toggle('sel',[1,2,3,4,5].indexOf(parseInt(b.dataset.d))>=0);});
   calcCJ();openM('m-func');
@@ -1109,15 +1138,14 @@ function editF(id){
   document.getElementById('mf-tit').textContent='Editar funcionário';
   document.getElementById('f-id').value=f.id;
   var m={'f-nome':f.nome,'f-cpf':f.cpf,'f-rg':f.rg,'f-nasc':f.nasc,'f-tel':f.tel,'f-email':f.email,'f-rua':f.rua,'f-bairro':f.bairro,'f-cidade':f.cidade,'f-ctps':f.ctps,'f-pis':f.pis,'f-tit':f.tit,'f-cargo':f.cargo,'f-depto':f.depto,'f-adm':f.adm,'f-sal':f.sal,'f-diária':f.diária,'f-obs':f.obs,'f-docs':f.docs,'f-je':f.jE||'08:00','f-jsa':f.jSa||'12:00','f-jra':f.jRa||'13:00','f-js':f.jS||'17:00'};
-  var fe=document.getElementById('f-enc-fgts');if(fe)fe.checked=f.encFgts||false;
-  var fi=document.getElementById('f-enc-inss-pat');if(fi)fi.checked=f.encInssPat||false;
-  var fp=document.getElementById('f-enc-inss-pct');if(fp)fp.value=f.encInssPct||20;
-  var fb=document.getElementById('f-enc-inss-box');if(fb)fb.style.display=(f.encInssPat)?'block':'none';
   var fuf=document.getElementById('f-ult-ferias');if(fuf)fuf.value=f.ultFerias||'';
+  var fip=document.getElementById('f-inss-pct');if(fip)fip.value=f.inssPct||'';
   Object.keys(m).forEach(function(k){var el=document.getElementById(k);if(el)el.value=m[k]||'';});
   document.getElementById('f-ecivil').value=f.ecivil||'Solteiro(a)';
   document.getElementById('f-esc').value=f.esc||'Ensino medio';
   document.getElementById('f-uf').value=f.uf||'';
+  var fip3=document.getElementById('f-inss-pct');if(fip3)fip3.value=f.inssPct||'';
+  var fuf3=document.getElementById('f-ult-ferias');if(fuf3)fuf3.value=f.ultFerias||'';
   document.getElementById('f-tipo').value=f.tipo||'clt';toggleTipo();
   document.getElementById(f.status==='inativo'?'f-inat':'f-ativ').checked=true;
   var dias=f.dias||[1,2,3,4,5];
@@ -1129,7 +1157,8 @@ async function salvarF(){
   var id=document.getElementById('f-id').value||LS.id();
   var rad=document.querySelector('input[name="f-st"]:checked');
   var dias=[];document.querySelectorAll('#dg .db.sel').forEach(function(b){dias.push(parseInt(b.dataset.d));});
-  var f={id:id,status:rad?rad.value:'ativo',tipo:document.getElementById('f-tipo').value,nome:nome,cargo:document.getElementById('f-cargo').value,sal:document.getElementById('f-sal').value,diária:document.getElementById('f-diária').value,cpf:document.getElementById('f-cpf').value,rg:document.getElementById('f-rg').value,nasc:document.getElementById('f-nasc').value,ecivil:document.getElementById('f-ecivil').value,esc:document.getElementById('f-esc').value,tel:document.getElementById('f-tel').value,email:document.getElementById('f-email').value,rua:document.getElementById('f-rua').value,bairro:document.getElementById('f-bairro').value,cidade:document.getElementById('f-cidade').value,uf:document.getElementById('f-uf').value,ctps:document.getElementById('f-ctps').value,pis:document.getElementById('f-pis').value,tit:document.getElementById('f-tit').value,depto:document.getElementById('f-depto').value,adm:document.getElementById('f-adm').value,obs:document.getElementById('f-obs').value,docs:document.getElementById('f-docs').value.trim(),jE:document.getElementById('f-je').value,jSa:document.getElementById('f-jsa').value,jRa:document.getElementById('f-jra').value,jS:document.getElementById('f-js').value,dias:dias};
+  var inssPctEl2=document.getElementById('f-inss-pct');var ultFEl2=document.getElementById('f-ult-ferias');
+var f={id:id,status:rad?rad.value:'ativo',tipo:document.getElementById('f-tipo').value,nome:nome,cargo:document.getElementById('f-cargo').value,sal:document.getElementById('f-sal').value,diária:document.getElementById('f-diária').value,inssPct:inssPctEl2?parseFloat(inssPctEl2.value||0):0,ultFerias:ultFEl2?ultFEl2.value:'',cpf:document.getElementById('f-cpf').value,rg:document.getElementById('f-rg').value,nasc:document.getElementById('f-nasc').value,ecivil:document.getElementById('f-ecivil').value,esc:document.getElementById('f-esc').value,tel:document.getElementById('f-tel').value,email:document.getElementById('f-email').value,rua:document.getElementById('f-rua').value,bairro:document.getElementById('f-bairro').value,cidade:document.getElementById('f-cidade').value,uf:document.getElementById('f-uf').value,ctps:document.getElementById('f-ctps').value,pis:document.getElementById('f-pis').value,tit:document.getElementById('f-tit').value,depto:document.getElementById('f-depto').value,adm:document.getElementById('f-adm').value,obs:document.getElementById('f-obs').value,docs:document.getElementById('f-docs').value.trim(),jE:document.getElementById('f-je').value,jSa:document.getElementById('f-jsa').value,jRa:document.getElementById('f-jra').value,jS:document.getElementById('f-js').value,dias:dias};
   var idx=DB.f.findIndex(function(x){return x.id===id;});
   if(idx>=0)DB.f[idx]=f;else DB.f.push(f);
   await persist();closeM('m-func');renderF();
@@ -1226,7 +1255,12 @@ function calcPT(){
   document.getElementById('p-calc').innerHTML='Trabalhado: <strong>'+toHH(t)+'</strong> · Jornada: <strong>'+toHH(jM)+'</strong> · <span style="color:'+(ex>0?'var(--ok)':ex<0?'var(--er)':'var(--tx2)')+'">Dif: '+(ex>=0?'+':'')+toHH(ex)+'</span>';
 }
 async function delPT(id){if(!confirm('Excluir?'))return;DB.pt=DB.pt.filter(function(p){return p.id!==id;});await persist();loadPT();}
-function initHE(){updSel();document.getElementById('he-fm').value=curM();renderHE();}
+function initHE(){
+  updSel();
+  var hFm=document.getElementById('he-fm');if(hFm&&!hFm.value)hFm.value=curM();
+  var hFf=document.getElementById('he-ff');if(hFf)hFf.value='';
+  renderHE();
+}
 function renderHE(){
   var ff=document.getElementById('he-ff').value;var fm=document.getElementById('he-fm').value;
   var lista=DB.he.filter(function(h){return(!ff||h.fid===ff)&&(!fm||h.ref===fm);}).sort(function(a,b){return b.data.localeCompare(a.data);});
@@ -1267,7 +1301,12 @@ async function salvarHE(){
   await persist();closeM('m-he');renderHE();
 }
 async function delHE(id){if(!confirm('Excluir?'))return;DB.he=DB.he.filter(function(h){return h.id!==id;});await persist();renderHE();}
-function initAD(){updSel();document.getElementById('ad-fm').value=curM();renderAD();}
+function initAD(){
+  updSel();
+  var aFm=document.getElementById('ad-fm');if(aFm&&!aFm.value)aFm.value=curM();
+  var aFf=document.getElementById('ad-ff');if(aFf)aFf.value='';
+  renderAD();
+}
 function renderAD(){
   var ff=document.getElementById('ad-ff').value;var fm=document.getElementById('ad-fm').value;
   var lista=DB.ad.filter(function(a){return(!ff||a.fid===ff)&&(!fm||a.ref===fm);}).sort(function(a,b){return a.data.localeCompare(b.data);});
@@ -1293,7 +1332,12 @@ async function salvarAD(){
   await persist();closeM('m-ad');renderAD();
 }
 async function delAD(id){if(!confirm('Excluir?'))return;DB.ad=DB.ad.filter(function(a){return a.id!==id;});await persist();renderAD();}
-function initGR(){updSel();document.getElementById('gr-fm').value=curM();renderGR();}
+function initGR(){
+  updSel();
+  var gFm=document.getElementById('gr-fm');if(gFm&&!gFm.value)gFm.value=curM();
+  var gFf=document.getElementById('gr-ff');if(gFf)gFf.value='';
+  renderGR();
+}
 function renderGR(){
   var ff=document.getElementById('gr-ff').value;var fm=document.getElementById('gr-fm').value;
   var lista=DB.gr.filter(function(g){return(!ff||g.fid===ff)&&(!fm||g.ref===fm);}).sort(function(a,b){return b.data.localeCompare(a.data);});
@@ -1994,6 +2038,12 @@ function calcFolhaLiq(){
   var o=parseFloat(document.getElementById('fl-outros').value||0)||0;
   var liq=b-i-r-o;
   var el=document.getElementById('fl-liq');if(el)el.textContent=fM(liq);
+  // Auto-calcular FGTS se bruto preenchido e FGTS vazio
+  var fgtsEl=document.getElementById('fl-fgts');
+  if(fgtsEl&&!fgtsEl.value&&b>0){fgtsEl.value=(b*0.08).toFixed(2);}
+}
+function toggleFolhaFixo(){
+  // apenas visual — salvo junto com o registro
 }
 
 function renderFolha(){
@@ -2003,7 +2053,8 @@ function renderFolha(){
   tb.innerHTML=lista.map(function(x){
     var func=DB.f.find(function(f){return f.id===x.fid;});
     var liq=parseFloat(x.bruto||0)-parseFloat(x.inss||0)-parseFloat(x.irrf||0)-parseFloat(x.outros||0);
-    return '<tr><td>'+fMe(x.ref)+'</td><td>'+(func?func.nome:'?')+'</td><td>'+fM(x.bruto)+'</td><td>'+(x.inss?fM(x.inss):'-')+'</td><td>'+(x.irrf?fM(x.irrf):'-')+'</td><td>'+(x.outros?fM(x.outros):'-')+'</td><td><strong>'+fM(liq)+'</strong></td><td style="color:var(--tx2)">'+(x.obs||'-')+'</td><td style="white-space:nowrap"><button class="btn sm" onclick="editFolha(\''+x.id+'\')">Editar</button> <button class="btn sm dr" onclick="delFolha(\''+x.id+'\')">✕</button></td></tr>';
+    var tEnc=(parseFloat(x.fgts||0)+parseFloat(x.inssPat||0)+parseFloat(x.encOutros||0));
+    return '<tr><td>'+fMe(x.ref)+'</td><td>'+(func?func.nome:'?')+'</td><td>'+fM(x.bruto)+'</td><td>'+(x.inss?fM(x.inss):'-')+'</td><td>'+(x.irrf?fM(x.irrf):'-')+'</td><td>'+(x.outros?fM(x.outros):'-')+'</td><td><strong>'+fM(liq)+'</strong></td><td>'+(tEnc>0?'<span class="badge am" style="font-size:10px">+'+fM(tEnc)+' enc.</span>':'-')+'</td><td style="color:var(--tx2)">'+(x.obs||'-')+'</td><td style="white-space:nowrap"><button class="btn sm" onclick="editFolha(\''+x.id+'\')">Editar</button> <button class="btn sm dr" onclick="delFolha(\''+x.id+'\')">✕</button></td></tr>';
   }).join('');
 }
 
@@ -2013,9 +2064,24 @@ function openMFolha(){
   if(prevFunc){var ff=document.getElementById('fl-f');if(ff)ff.value=prevFunc;}
   document.getElementById('fl-id').value='';
   document.getElementById('fl-ref').value=curM();
-  ['fl-bruto','fl-inss','fl-irrf','fl-outros'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  ['fl-bruto','fl-inss','fl-irrf','fl-outros','fl-fgts','fl-inss-pat','fl-enc-outros'].forEach(function(sid){var sel=document.getElementById(sid);if(sel)sel.value='';});
   document.getElementById('fl-obs').value='';
   var liq=document.getElementById('fl-liq');if(liq)liq.textContent='R$ 0,00';
+  var fixoCb=document.getElementById('fl-fixo');if(fixoCb)fixoCb.checked=false;
+  // Se funcionário selecionado tem folha fixa, pré-preencher
+  if(prevFunc){
+    var func=DB.f.find(function(f){return f.id===prevFunc;});
+    var hint=document.getElementById('fl-auto-hint');
+    if(func&&func.folhaFixaAtiva&&func.folhaFixa){
+      var ff2=func.folhaFixa;
+      var campos={'fl-bruto':ff2.bruto,'fl-inss':ff2.inss,'fl-irrf':ff2.irrf,'fl-outros':ff2.outros,'fl-fgts':ff2.fgts,'fl-inss-pat':ff2.inssPat,'fl-enc-outros':ff2.encOutros};
+      Object.keys(campos).forEach(function(k){var el=document.getElementById(k);if(el&&campos[k])el.value=campos[k];});
+      calcFolhaLiq();
+      if(hint){hint.style.display='block';hint.textContent='✓ Valores pré-preenchidos com base no lançamento fixo anterior. Corrija se necessário.';}
+    }else{
+      if(hint)hint.style.display='none';
+    }
+  }
   openM('m-folha');
 }
 
@@ -2029,7 +2095,12 @@ function editFolha(id){
   document.getElementById('fl-inss').value=x.inss||'';
   document.getElementById('fl-irrf').value=x.irrf||'';
   document.getElementById('fl-outros').value=x.outros||'';
+  var fg=document.getElementById('fl-fgts');if(fg)fg.value=x.fgts||'';
+  var fip=document.getElementById('fl-inss-pat');if(fip)fip.value=x.inssPat||'';
+  var feo=document.getElementById('fl-enc-outros');if(feo)feo.value=x.encOutros||'';
   document.getElementById('fl-obs').value=x.obs||'';
+  var fcb=document.getElementById('fl-fixo');if(fcb)fcb.checked=x.fixo||false;
+  var hint=document.getElementById('fl-auto-hint');if(hint)hint.style.display='none';
   calcFolhaLiq();openM('m-folha');
 }
 
@@ -2037,7 +2108,26 @@ async function salvarFolha(){
   var fid=document.getElementById('fl-f').value;var ref=document.getElementById('fl-ref').value;var bruto=document.getElementById('fl-bruto').value;
   if(!fid||!ref||!bruto){alert('Funcionário, mês e salário bruto são obrigatórios');return;}
   var id=document.getElementById('fl-id').value||LS.id();
-  var rec={id:id,fid:fid,ref:ref,bruto:parseFloat(bruto),inss:parseFloat(document.getElementById('fl-inss').value||0)||0,irrf:parseFloat(document.getElementById('fl-irrf').value||0)||0,outros:parseFloat(document.getElementById('fl-outros').value||0)||0,obs:document.getElementById('fl-obs').value};
+  var fixo=document.getElementById('fl-fixo')?document.getElementById('fl-fixo').checked:false;
+  var rec={id:id,fid:fid,ref:ref,bruto:parseFloat(bruto),
+    inss:parseFloat(document.getElementById('fl-inss').value||0)||0,
+    irrf:parseFloat(document.getElementById('fl-irrf').value||0)||0,
+    outros:parseFloat(document.getElementById('fl-outros').value||0)||0,
+    fgts:parseFloat(document.getElementById('fl-fgts')?document.getElementById('fl-fgts').value||0:0)||0,
+    inssPat:parseFloat(document.getElementById('fl-inss-pat')?document.getElementById('fl-inss-pat').value||0:0)||0,
+    encOutros:parseFloat(document.getElementById('fl-enc-outros')?document.getElementById('fl-enc-outros').value||0:0)||0,
+    obs:document.getElementById('fl-obs').value,
+    fixo:fixo,
+    resp:CU?CU.nome:''
+  };
+  // Se fixo, salvar template no funcionário
+  if(fixo){
+    var func=DB.f.find(function(f){return f.id===fid;});
+    if(func){
+      func.folhaFixa={bruto:rec.bruto,inss:rec.inss,irrf:rec.irrf,outros:rec.outros,fgts:rec.fgts,inssPat:rec.inssPat,encOutros:rec.encOutros};
+      func.folhaFixaAtiva=true;
+    }
+  }
   var idx=DB.folha.findIndex(function(x){return x.id===id;});
   if(idx>=0)DB.folha[idx]=rec;else DB.folha.push(rec);
   await persist();closeM('m-folha');renderFolha();
@@ -2216,6 +2306,12 @@ function calcFolhaLiq(){
   var o=parseFloat(document.getElementById('fl-outros').value||0)||0;
   var liq=b-i-r-o;
   var el=document.getElementById('fl-liq');if(el)el.textContent=fM(liq);
+  // Auto-calcular FGTS se bruto preenchido e FGTS vazio
+  var fgtsEl=document.getElementById('fl-fgts');
+  if(fgtsEl&&!fgtsEl.value&&b>0){fgtsEl.value=(b*0.08).toFixed(2);}
+}
+function toggleFolhaFixo(){
+  // apenas visual — salvo junto com o registro
 }
 
 function renderFolha(){
@@ -2225,7 +2321,8 @@ function renderFolha(){
   tb.innerHTML=lista.map(function(x){
     var func=DB.f.find(function(f){return f.id===x.fid;});
     var liq=parseFloat(x.bruto||0)-parseFloat(x.inss||0)-parseFloat(x.irrf||0)-parseFloat(x.outros||0);
-    return '<tr><td>'+fMe(x.ref)+'</td><td>'+(func?func.nome:'?')+'</td><td>'+fM(x.bruto)+'</td><td>'+(x.inss?fM(x.inss):'-')+'</td><td>'+(x.irrf?fM(x.irrf):'-')+'</td><td>'+(x.outros?fM(x.outros):'-')+'</td><td><strong>'+fM(liq)+'</strong></td><td style="color:var(--tx2)">'+(x.obs||'-')+'</td><td style="white-space:nowrap"><button class="btn sm" onclick="editFolha(\''+x.id+'\')">Editar</button> <button class="btn sm dr" onclick="delFolha(\''+x.id+'\')">✕</button></td></tr>';
+    var tEnc=(parseFloat(x.fgts||0)+parseFloat(x.inssPat||0)+parseFloat(x.encOutros||0));
+    return '<tr><td>'+fMe(x.ref)+'</td><td>'+(func?func.nome:'?')+'</td><td>'+fM(x.bruto)+'</td><td>'+(x.inss?fM(x.inss):'-')+'</td><td>'+(x.irrf?fM(x.irrf):'-')+'</td><td>'+(x.outros?fM(x.outros):'-')+'</td><td><strong>'+fM(liq)+'</strong></td><td>'+(tEnc>0?'<span class="badge am" style="font-size:10px">+'+fM(tEnc)+' enc.</span>':'-')+'</td><td style="color:var(--tx2)">'+(x.obs||'-')+'</td><td style="white-space:nowrap"><button class="btn sm" onclick="editFolha(\''+x.id+'\')">Editar</button> <button class="btn sm dr" onclick="delFolha(\''+x.id+'\')">✕</button></td></tr>';
   }).join('');
 }
 
@@ -2235,9 +2332,24 @@ function openMFolha(){
   if(prevFunc){var ff=document.getElementById('fl-f');if(ff)ff.value=prevFunc;}
   document.getElementById('fl-id').value='';
   document.getElementById('fl-ref').value=curM();
-  ['fl-bruto','fl-inss','fl-irrf','fl-outros'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  ['fl-bruto','fl-inss','fl-irrf','fl-outros','fl-fgts','fl-inss-pat','fl-enc-outros'].forEach(function(sid){var sel=document.getElementById(sid);if(sel)sel.value='';});
   document.getElementById('fl-obs').value='';
   var liq=document.getElementById('fl-liq');if(liq)liq.textContent='R$ 0,00';
+  var fixoCb=document.getElementById('fl-fixo');if(fixoCb)fixoCb.checked=false;
+  // Se funcionário selecionado tem folha fixa, pré-preencher
+  if(prevFunc){
+    var func=DB.f.find(function(f){return f.id===prevFunc;});
+    var hint=document.getElementById('fl-auto-hint');
+    if(func&&func.folhaFixaAtiva&&func.folhaFixa){
+      var ff2=func.folhaFixa;
+      var campos={'fl-bruto':ff2.bruto,'fl-inss':ff2.inss,'fl-irrf':ff2.irrf,'fl-outros':ff2.outros,'fl-fgts':ff2.fgts,'fl-inss-pat':ff2.inssPat,'fl-enc-outros':ff2.encOutros};
+      Object.keys(campos).forEach(function(k){var el=document.getElementById(k);if(el&&campos[k])el.value=campos[k];});
+      calcFolhaLiq();
+      if(hint){hint.style.display='block';hint.textContent='✓ Valores pré-preenchidos com base no lançamento fixo anterior. Corrija se necessário.';}
+    }else{
+      if(hint)hint.style.display='none';
+    }
+  }
   openM('m-folha');
 }
 
@@ -2251,7 +2363,12 @@ function editFolha(id){
   document.getElementById('fl-inss').value=x.inss||'';
   document.getElementById('fl-irrf').value=x.irrf||'';
   document.getElementById('fl-outros').value=x.outros||'';
+  var fg=document.getElementById('fl-fgts');if(fg)fg.value=x.fgts||'';
+  var fip=document.getElementById('fl-inss-pat');if(fip)fip.value=x.inssPat||'';
+  var feo=document.getElementById('fl-enc-outros');if(feo)feo.value=x.encOutros||'';
   document.getElementById('fl-obs').value=x.obs||'';
+  var fcb=document.getElementById('fl-fixo');if(fcb)fcb.checked=x.fixo||false;
+  var hint=document.getElementById('fl-auto-hint');if(hint)hint.style.display='none';
   calcFolhaLiq();openM('m-folha');
 }
 
@@ -2259,7 +2376,26 @@ async function salvarFolha(){
   var fid=document.getElementById('fl-f').value;var ref=document.getElementById('fl-ref').value;var bruto=document.getElementById('fl-bruto').value;
   if(!fid||!ref||!bruto){alert('Funcionário, mês e salário bruto são obrigatórios');return;}
   var id=document.getElementById('fl-id').value||LS.id();
-  var rec={id:id,fid:fid,ref:ref,bruto:parseFloat(bruto),inss:parseFloat(document.getElementById('fl-inss').value||0)||0,irrf:parseFloat(document.getElementById('fl-irrf').value||0)||0,outros:parseFloat(document.getElementById('fl-outros').value||0)||0,obs:document.getElementById('fl-obs').value};
+  var fixo=document.getElementById('fl-fixo')?document.getElementById('fl-fixo').checked:false;
+  var rec={id:id,fid:fid,ref:ref,bruto:parseFloat(bruto),
+    inss:parseFloat(document.getElementById('fl-inss').value||0)||0,
+    irrf:parseFloat(document.getElementById('fl-irrf').value||0)||0,
+    outros:parseFloat(document.getElementById('fl-outros').value||0)||0,
+    fgts:parseFloat(document.getElementById('fl-fgts')?document.getElementById('fl-fgts').value||0:0)||0,
+    inssPat:parseFloat(document.getElementById('fl-inss-pat')?document.getElementById('fl-inss-pat').value||0:0)||0,
+    encOutros:parseFloat(document.getElementById('fl-enc-outros')?document.getElementById('fl-enc-outros').value||0:0)||0,
+    obs:document.getElementById('fl-obs').value,
+    fixo:fixo,
+    resp:CU?CU.nome:''
+  };
+  // Se fixo, salvar template no funcionário
+  if(fixo){
+    var func=DB.f.find(function(f){return f.id===fid;});
+    if(func){
+      func.folhaFixa={bruto:rec.bruto,inss:rec.inss,irrf:rec.irrf,outros:rec.outros,fgts:rec.fgts,inssPat:rec.inssPat,encOutros:rec.encOutros};
+      func.folhaFixaAtiva=true;
+    }
+  }
   var idx=DB.folha.findIndex(function(x){return x.id===id;});
   if(idx>=0)DB.folha[idx]=rec;else DB.folha.push(rec);
   await persist();closeM('m-folha');renderFolha();
@@ -2660,30 +2796,9 @@ function togglePTipo(){
 // ENCARGOS AUTOMÁTICOS — gerar mensalmente
 // ============================================================
 function gerarEncargosAutomaticos(){
-  var mesAtual=curM();
-  var hoje=new Date().toISOString().slice(0,10);
-  var gerados=0;
-  DB.f.filter(function(f){return f.status!=='inativo'&&f.tipo!=='temp'&&(f.encFgts||f.encInssPat);}).forEach(function(func){
-    var sal=parseFloat(func.sal||0);if(!sal)return;
-    // FGTS
-    if(func.encFgts){
-      var jaFgts=DB.enc.find(function(x){return x.fid===func.id&&x.ref===mesAtual&&x.desc==='FGTS'&&x.auto;});
-      if(!jaFgts){
-        DB.enc.push({id:LS.id(),fid:func.id,ref:mesAtual,tipo:'patronal',desc:'FGTS',base:sal,pct:8,val:sal*0.08,obs:'Automático',auto:true});
-        gerados++;
-      }
-    }
-    // INSS Patronal
-    if(func.encInssPat){
-      var pct=parseFloat(func.encInssPct||20);
-      var jaInss=DB.enc.find(function(x){return x.fid===func.id&&x.ref===mesAtual&&x.desc==='INSS Patronal'&&x.auto;});
-      if(!jaInss){
-        DB.enc.push({id:LS.id(),fid:func.id,ref:mesAtual,tipo:'patronal',desc:'INSS Patronal',base:sal,pct:pct,val:sal*pct/100,obs:'Automático',auto:true});
-        gerados++;
-      }
-    }
-  });
-  if(gerados>0){persist();console.log('Encargos automáticos gerados:',gerados);}
+  // Agora os encargos são gerenciados pela folha mensal com lançamento fixo
+  // Esta função não precisa mais gerar automaticamente — deixar para o openMFolha
+  console.log('Encargos gerenciados pela folha mensal');
 }
 
 // ============================================================
@@ -2730,9 +2845,6 @@ function renderDash(){
 // ============================================================
 // SALVAR FUNCIONÁRIO — incluir encargos fixos e ult férias
 // ============================================================
-function getEncFgts(){var el=document.getElementById('f-enc-fgts');return el?el.checked:false;}
-function getEncInssPat(){var el=document.getElementById('f-enc-inss-pat');return el?el.checked:false;}
-function getEncInssPct(){var el=document.getElementById('f-enc-inss-pct');return el?parseFloat(el.value||20):20;}
 function getUltFerias(){var el=document.getElementById('f-ult-ferias');return el?el.value:'';}
 
 // ============================================================
@@ -2921,6 +3033,7 @@ function calcDireitoFerias(func){
   var status=diasAteVencConc<0?'vencida':diasAteVencConc<60?'proximo':diasAteVenc<0?'disponivel':'acumulando';
   return{mesesTrab:mesesDesdeBase,iniAquis:iniAquis,fimAquis:fimAquis,vencConcess:vencConcess,diasAteVenc:diasAteVenc,diasAteVencConc:diasAteVencConc,pago:pago,diasPagos:diasPagos,status:status};
 }
+
 
 </script>
 <script>if("serviceWorker" in navigator)window.addEventListener("load",function(){navigator.serviceWorker.register("./service-worker.js").catch(function(e){console.log("SW:",e);});});</script>
